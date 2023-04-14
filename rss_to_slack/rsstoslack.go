@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"math/rand"
+	"time"
 
 	"github.com/slack-go/slack"
 )
@@ -24,7 +26,6 @@ type RSS struct {
 		} `xml:"item"`
 	} `xml:"channel"`
 }
-
 
 func main() {
 	// RSS URL
@@ -59,14 +60,33 @@ func main() {
 	client := slack.New(apiToken)
 
 	// Make Message
-	var messages []string
-	for _, item := range rss.Channel.Item {
-		messages = append(messages, fmt.Sprintf("<%s|%s>\n%s", item.Link, item.Title, item.Description))
-	}
-	message := strings.Join(messages, "\n")
+	//var messages []string
+	// for _, item := range rss.Channel.Item {
+	// 	messages = append(messages, fmt.Sprintf("<%s|%s>\n%s", item.Link, item.Title, item.Description))
+	// }
+	//message := strings.Join(messages, "\n")
+
+	// Seed for random number
+	rand.Seed(time.Now().UnixNano())
+
+	num := rand.Intn(10)
 
 	// Post Message
-	_, _, err = client.PostMessage(channel, slack.MsgOptionText(message, false))
+	_, _, err = client.PostMessage(channel, slack.MsgOptionBlocks(
+		slack.NewSectionBlock(
+			// text
+			&slack.TextBlockObject{Type: "mrkdwn", Text: "Today's News"},
+			// fields
+			[]*slack.TextBlockObject{
+				{Type: "mrkdwn", Text: "Title: " + rss.Channel.Item[num].Title},
+				{Type: "mrkdwn", Text: "Link: " + rss.Channel.Item[num].Link},
+				{Type: "mrkdwn", Text: "Descreption: " + rss.Channel.Item[num].Description[0:420]},
+			},
+			slack.NewAccessory(
+				slack.NewImageBlockElement("https://s3-media2.fl.yelpcdn.com/bphoto/korel-1YjNtFtJlMTaC26A/o.jpg", "alt text for image"),
+			),
+			),
+		))
 	if err != nil {
 		panic(err)
 	}
